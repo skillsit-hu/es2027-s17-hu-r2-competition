@@ -1,0 +1,385 @@
+openapi: 3.0.3
+info:
+  title: Skillshare Academy Learning Services API
+  description: |
+    API for managing courses, chapters, and learning content in the Skillshare Academy platform.
+    This API provides endpoints for course catalog, course details, chapter content, and user progress tracking.
+  version: 1.0.0
+  contact:
+    name: Skillshare Academy Development Team
+    email: dev@skillshare-academy.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://content.ssa.skillsit.hu
+    description: Production server
+
+tags:
+  - name: Courses
+    description: Course management and catalog operations
+  - name: Chapters
+    description: Chapter content and details
+  - name: Authentication
+    description: User authentication and authorization
+
+paths:
+  /api/courses:
+    get:
+      tags:
+        - Courses
+      summary: Get course catalog
+      description: |
+        Retrieve a list of all courses with their basic information and chapter counts.
+        Returns all courses ordered by creation date (newest first).
+      responses:
+        "200":
+          description: Successfully retrieved course list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  courses:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CourseWithChapters"
+              examples:
+                default:
+                  summary: Example response
+                  value:
+                    courses:
+                      - id: 1
+                        title: "JavaScript Fundamentals"
+                        description: "Learn the basics of JavaScript programming"
+                        difficulty: "BEGINNER"
+                        totalChapters: 12
+                        totalCredits: 60
+                        createdAt: "2024-01-15T10:30:00Z"
+                        chapters:
+                          - id: 1
+                            title: "Introduction to JavaScript"
+                            credits: 5
+                            orderIndex: 1
+                      - id: 2
+                        title: "Advanced React Patterns"
+                        description: "Master advanced React concepts and patterns"
+                        difficulty: "ADVANCED"
+                        totalChapters: 8
+                        totalCredits: 40
+                        createdAt: "2024-01-10T14:20:00Z"
+                        chapters:
+                          - id: 5
+                            title: "React Hooks Deep Dive"
+                            credits: 5
+                            orderIndex: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/courses/{courseId}:
+    get:
+      tags:
+        - Courses
+      summary: Get course details
+      description: |
+        Retrieve detailed information about a specific course including all its chapters.
+        Returns comprehensive course data with chapter listings.
+      parameters:
+        - name: courseId
+          in: path
+          description: Unique identifier of the course
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        "200":
+          description: Successfully retrieved course details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  course:
+                    $ref: "#/components/schemas/CourseDetails"
+              examples:
+                default:
+                  summary: Example response
+                  value:
+                    course:
+                      id: 1
+                      title: "JavaScript Fundamentals"
+                      description: "Learn the basics of JavaScript programming"
+                      difficulty: "BEGINNER"
+                      totalChapters: 12
+                      totalCredits: 60
+                      chapters:
+                        - id: 1
+                          title: "Introduction to JavaScript"
+                          description: "Overview of JavaScript basics"
+                          credits: 5
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/CourseNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/courses/{courseId}/chapter/{chapterId}:
+    get:
+      tags:
+        - Chapters
+      summary: Get chapter content
+      description: |
+        Retrieve the content and description of a specific chapter within a course.
+        Returns dynamically generated Lorem Ipsum content with HTML formatting.
+      parameters:
+        - name: courseId
+          in: path
+          description: Unique identifier of the course
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - name: chapterId
+          in: path
+          description: Unique identifier of the chapter within the course
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        "200":
+          description: Successfully retrieved chapter content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChapterContent"
+              examples:
+                default:
+                  summary: Example response
+                  value:
+                    content: "<p><strong>Chapter content</strong>: Lorem ipsum dolor sit amet, consectetur adipiscing elit...</p>"
+                    description: "<p><strong>Chapter overview</strong>: This chapter covers essential concepts...</p>"
+                    courseId: 1
+                    chapterId: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/ChapterNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  schemas:
+    Course:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the course
+          example: 1
+        title:
+          type: string
+          description: Course title
+          example: "JavaScript Fundamentals"
+        description:
+          type: string
+          description: Course description
+          example: "Learn the basics of JavaScript programming"
+        difficulty:
+          type: string
+          enum: [BEGINNER, INTERMEDIATE, ADVANCED]
+          description: Course difficulty level
+          example: "BEGINNER"
+        totalChapters:
+          type: integer
+          description: Total number of chapters in the course
+          example: 12
+        totalCredits:
+          type: integer
+          description: Total credits available for the course
+          example: 60
+        createdAt:
+          type: string
+          format: date-time
+          description: Course creation timestamp
+          example: "2024-01-15T10:30:00Z"
+      required:
+        - id
+        - title
+        - description
+        - difficulty
+        - totalChapters
+        - totalCredits
+        - createdAt
+
+    CourseWithChapters:
+      allOf:
+        - $ref: "#/components/schemas/Course"
+        - type: object
+          properties:
+            chapters:
+              type: array
+              items:
+                $ref: "#/components/schemas/ChapterSummary"
+              description: List of chapters in the course
+
+    CourseDetails:
+      allOf:
+        - $ref: "#/components/schemas/Course"
+        - type: object
+          properties:
+            chapters:
+              type: array
+              items:
+                $ref: "#/components/schemas/ChapterDetails"
+              description: Detailed list of chapters in the course
+
+    ChapterSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the chapter
+          example: 1
+        title:
+          type: string
+          description: Chapter title
+          example: "Introduction to JavaScript"
+        credits:
+          type: integer
+          description: Credits available for this chapter
+          example: 5
+        orderIndex:
+          type: integer
+          description: Chapter order within the course
+          example: 1
+      required:
+        - id
+        - title
+        - credits
+        - orderIndex
+
+    ChapterDetails:
+      allOf:
+        - $ref: "#/components/schemas/ChapterSummary"
+        - type: object
+          properties:
+            description:
+              type: string
+              description: Chapter description
+              example: "Overview of JavaScript basics and fundamentals"
+
+    ChapterContent:
+      type: object
+      properties:
+        content:
+          type: string
+          description: HTML-formatted chapter content with Lorem Ipsum text
+          example: "<p><strong>Chapter content</strong>: Lorem ipsum dolor sit amet...</p>"
+        description:
+          type: string
+          description: HTML-formatted chapter description
+          example: "<p><strong>Chapter overview</strong>: This chapter covers essential concepts...</p>"
+        courseId:
+          type: integer
+          description: Course identifier
+          example: 1
+        chapterId:
+          type: integer
+          description: Chapter identifier
+          example: 1
+      required:
+        - content
+        - description
+        - courseId
+        - chapterId
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Failed to fetch courses"
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "COURSES_FETCH_ERROR"
+        details:
+          type: object
+          description: Additional error details (optional)
+          additionalProperties: true
+      required:
+        - error
+        - code
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            default:
+              summary: Bad request example
+              value:
+                error: "Invalid course ID format"
+                code: "INVALID_COURSE_ID"
+
+    CourseNotFound:
+      description: Course not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            default:
+              summary: Course not found example
+              value:
+                error: "Course not found"
+                code: "COURSE_NOT_FOUND"
+
+    ChapterNotFound:
+      description: Chapter not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            default:
+              summary: Chapter not found example
+              value:
+                error: "Chapter not found"
+                code: "CHAPTER_NOT_FOUND"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            default:
+              summary: Internal server error example
+              value:
+                error: "Failed to fetch course details"
+                code: "COURSE_DETAILS_ERROR"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+security:
+  - BearerAuth: []
